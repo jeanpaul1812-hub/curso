@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mani Bank | Billetera Digital</title>
+    <style>
+        :root { --primary: #004a99; --secondary: #f4f7f6; --accent: #00a86b; --danger: #ff4d4d; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--secondary); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 450px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { color: var(--primary); margin: 0; }
+        .sub { color: #666; font-size: 0.9em; margin-top: 5px; }
+        
+        .hidden { display: none; }
+        .saldo-card { background: var(--accent); color: white; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0, 168, 107, 0.3); }
+        
+        .nav-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        button { padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-main { background: var(--primary); color: white; width: 100%; }
+        .btn-nav { background: #e0e0e0; }
+        .btn-nav.active { background: var(--primary); color: white; }
+        .btn-logout { background: #ff4d4d; color: white; margin-top: 20px; width: 100%; }
+        .btn-delete { background: var(--danger); color: white; margin-top: 8px; width: 100%; padding: 5px; font-size: 0.8em; }
+        
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        ul { list-style: none; padding: 0; }
+        li { background: #f9f9f9; padding: 10px; margin-bottom: 8px; border-radius: 8px; border-left: 4px solid var(--accent); font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Mani Bank</h1>
+        <p class="sub">Tu billetera digital segura</p>
+    </header>
+
+    <!-- LOGIN -->
+    <div id="login-section">
+        <input type="text" id="user" placeholder="Usuario (jeanpaul)">
+        <input type="password" id="pass" placeholder="Contraseña (6789)">
+        <button class="btn-main" onclick="login()">Acceder</button>
+    </div>
+
+    <!-- APP -->
+    <div id="app-section" class="hidden">
+        <div class="saldo-card">
+            <small>Saldo Disponible</small>
+            <h1 id="saldo">$0.00</h1>
+        </div>
+
+        <div class="nav-menu">
+            <button class="btn-nav active" onclick="showSection('deposit', this)">Ingresos</button>
+            <button class="btn-nav" onclick="showSection('transfer', this)">Salidas</button>
+            <button class="btn-nav" onclick="showSection('clients', this)">Clientes</button>
+            <button class="btn-nav" onclick="showSection('history', this)">Movimientos</button>
+        </div>
+
+        <div id="deposit" class="section">
+            <input type="number" id="inputDeposit" placeholder="Monto a ingresar">
+            <button class="btn-main" onclick="realizarDeposito()">Confirmar Depósito</button>
+        </div>
+
+        <div id="transfer" class="section hidden">
+            <select id="recipient-select"></select>
+            <input type="number" id="amount" placeholder="Monto a enviar">
+            <button class="btn-main" onclick="transfer()">Realizar Envío</button>
+        </div>
+
+        <div id="clients" class="section hidden">
+            <input type="text" id="cName" placeholder="Nombre">
+            <input type="text" id="cRut" placeholder="RUT">
+            <input type="text" id="cCta" placeholder="N° Cuenta">
+            <input type="text" id="cBanco" placeholder="Banco">
+            <button class="btn-main" onclick="addContact()">Guardar Cliente</button>
+            <ul id="contact-list"></ul>
+        </div>
+
+        <div id="history" class="section hidden">
+            <ul id="history-list"></ul>
+        </div>
+
+        <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+    </div>
+</div>
+
+<script>
+    const USER_VALID = "jeanpaul";
+    const PASS_VALID = "6789";
+
+    let balance = parseFloat(localStorage.getItem('balance')) || 0;
+    let contacts = JSON.parse(localStorage.getItem('contacts')) || [];
+    let history = JSON.parse(localStorage.getItem('history')) || [];
+
+    function login() {
+        if (document.getElementById('user').value === USER_VALID && document.getElementById('pass').value === PASS_VALID) {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('app-section').classList.remove('hidden');
+            updateUI();
+        } else { alert("Usuario o contraseña incorrectos"); }
+    }
+
+    function logout() {
+        document.getElementById('login-section').classList.remove('hidden');
+        document.getElementById('app-section').classList.add('hidden');
+    }
+
+    function showSection(id, btn) {
+        document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function realizarDeposito() {
+        const monto = parseFloat(document.getElementById('inputDeposit').value);
+        if (monto > 0) {
+            balance += monto;
+            history.unshift(`INGRESO: +$${monto}`);
+            saveAndRefresh();
+            document.getElementById('inputDeposit').value = '';
+        }
+    }
+
+    function addContact() {
+        const newClient = { nombre: document.getElementById('cName').value, rut: document.getElementById('cRut').value, cta: document.getElementById('cCta').value, banco: document.getElementById('cBanco').value };
+        if (newClient.nombre) {
+            contacts.push(newClient);
+            localStorage.setItem('contacts', JSON.stringify(contacts));
+            updateUI();
+        }
+    }
+
+    function removeContact(index) {
+        contacts.splice(index, 1);
+        localStorage.setItem('contacts', JSON.stringify(contacts));
+        updateUI();
+    }
+
+    function transfer() {
+        const amount = parseFloat(document.getElementById('amount').value);
+        const index = document.getElementById('recipient-select').value;
+        if (amount > 0 && amount <= balance && index !== "") {
+            balance -= amount;
+            history.unshift(`SALIDA: -$${amount} a ${contacts[index].nombre}`);
+            saveAndRefresh();
+        } else { alert("Saldo insuficiente o datos inválidos"); }
+    }
+
+    function saveAndRefresh() {
+        localStorage.setItem('balance', balance);
+        localStorage.setItem('history', JSON.stringify(history));
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('saldo').innerText = "$" + balance.toFixed(2);
+        const contactList = document.getElementById('contact-list');
+        const select = document.getElementById('recipient-select');
+        const historyList = document.getElementById('history-list');
+        
+        contactList.innerHTML = ''; 
+        select.innerHTML = '<option value="">Seleccione cliente...</option>';
+        
+        contacts.forEach((c, i) => {
+            contactList.innerHTML += `<li>
+                <strong>${c.nombre}</strong><br>${c.banco} | CTA: ${c.cta}
+                <button class="btn-delete" onclick="removeContact(${i})">Eliminar Cliente</button>
+            </li>`;
+            select.innerHTML += `<option value="${i}">${c.nombre}</option>`;
+        });
+        
+        historyList.innerHTML = history.map(h => `<li>${h}</li>`).join('');
+    }
+</script>
+</body>
+</html>

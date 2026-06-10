@@ -1,0 +1,23 @@
+/* 5. Personalización y Sobrescritura */
+
+/* Modificando un estilo de Bootstrap (Padding del container) */
+.container {
+    padding-top: 50px !important;
+}
+
+/* Modificando un estilo predefinido (.btn-primary) */
+.btn-primary {
+    background-color: #2c3e50 !important;
+    border-color: #2c3e50 !important;
+}
+
+/* Añadiendo una clase personalizada */
+.custom-btn {
+    border-radius: 50px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.custom-btn:hover {
+    background-color: #e74c3c !important;
+}
